@@ -1,7 +1,4 @@
 const { EmbedBuilder, MessageActionRow, MessageButton,ButtonBuilder,ActionRowBuilder, InteractionCollector , AttachmentBuilder} = require('discord.js');
-const {footer,footerIcon,color,defaultThumbnail} = require('../config.json')
-
-
 
 module.exports = {
   name: 'interactionCreate',
