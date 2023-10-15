@@ -25,16 +25,25 @@ function writeExpirationsToFile(data) {
     fs.writeFileSync(expirationFilePath, jsonData, 'utf8');
 }
 
-async function assignRoleWithExpiration(member, roleId, days) {
+async function assignRoleWithExpiration(member, roleId, days, key) {
     // Add the role to the user
     await member.roles.add(roleId);
 
     // Calculate the expiration timestamp
     const expirationTimestamp = Date.now() + (days * 24 * 60 * 60 * 1000);
 
-    // Save the expiration in the JSON file
+    // Save the expiration and the key in the JSON file
     const expirations = readExpirationsFromFile();
-    expirations[member.id] = expirationTimestamp;
+
+    if (expirations[member.id] && expirations[member.id].key === key) {
+        throw new Error('This key has already been used by the user.');
+    }
+
+    expirations[member.id] = {
+        key: key,
+        expiration: expirationTimestamp
+    };
+
     writeExpirationsToFile(expirations);
 }
 
@@ -44,11 +53,12 @@ function checkRoleExpirations() {
 
     for (let userId in expirations) {
         if (expirations[userId] <= now) {
-            const guild = client.guilds.cache.get(guidId); // Replace with your guild ID
+            if (expirations[userId].expiration <= now){
+            const guild = client.guilds.cache.get(guidId); 
             const member = guild.members.cache.get(userId);
 
             if (member) {
-                member.roles.remove(roleId) // Replace with your role ID
+                member.roles.remove(roleId) 
                     .then(() => {
                         console.log(`Removed role from user ${userId}.`);
                     })
@@ -59,6 +69,9 @@ function checkRoleExpirations() {
 
             // Remove this user from the expirations data
             delete expirations[userId];
+
+            }
+            
         }
     }
 
