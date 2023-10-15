@@ -1,4 +1,3 @@
-const { ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const axios = require('axios');
 const roleManager = require('../roleManager');
@@ -27,20 +26,27 @@ module.exports = {
         const data = response.data;
         
         if (data.success && data.status === "Not Used") {
-            const daysLeft = parseInt(data.duration, 10);
+          const secondsInADay = 24 * 60 * 60;
+          let daysLeft = Math.round(parseInt(data.duration, 10) / secondsInADay);
+          daysLeft += 3;
+          
             
             // Assign the role using roleManager
             const member = interaction.guild.members.cache.get(interaction.user.id);
-            await roleManager.assignRoleWithExpiration(member, roleId, daysLeft);
+            await roleManager.assignRoleWithExpiration(member, roleId, daysLeft, licenseKey);
             
-            await interaction.reply(`Role assigned for ${daysLeft} days.`);
-        } else {
-            await interaction.reply('Sorry, that key is invalid or already used.');
-        }
+            await interaction.reply({ content: `Role assigned for ${daysLeft} days.`, ephemeral: true });
+          } else {
+              await interaction.reply({ content: 'Sorry, that key is invalid or already used.', ephemeral: true });
+          }
     } catch (error) {
-        console.error('Error in claimrole command:', error);
-        await interaction.reply('An error occurred while processing your request. Please try again later.');
-    }
+      if (error.message === 'This key has already been used by the user.') {
+          await interaction.reply({ content: 'You have already used this key.', ephemeral: true });
+      } else {
+          console.error('Error in claimrole command:', error);
+          await interaction.reply({ content: 'An error occurred while processing your request. Please try again later.', ephemeral: true });
+      }
+  }
 }
 
 };
