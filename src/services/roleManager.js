@@ -1,11 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const { Client, GatewayIntentBits } = require('discord.js');
-const {guidId,roleId} = require('../config.json')
+const {guildId,roleId} = require('../config.json')
 const expirationFilePath = path.join(__dirname, 'roleExpirations.json');
-
-
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.MessageContent] });
 
 function ensureFileExists() {
     if (!fs.existsSync(expirationFilePath)) {
@@ -35,41 +31,51 @@ async function assignRoleWithExpiration(member, roleId, days, key) {
     // Save the expiration and the key in the JSON file
     const expirations = readExpirationsFromFile();
 
-    if (expirations[member.id] && expirations[member.id].key === key) {
-        throw new Error('This key has already been used by the user.');
+    if (expirations[key]) {
+        if (expirations[key].userId === member.id) {
+            throw new Error('This key has already been used by you.');
+        } else {
+            throw new Error('This key has already been used by another user.');
+        }
     }
-
-    expirations[member.id] = {
-        key: key,
+    
+    expirations[key] = {
+        userId: member.id,
         expiration: expirationTimestamp
     };
 
     writeExpirationsToFile(expirations);
 }
 
-function checkRoleExpirations() {
+async function checkRoleExpirations(client) {
+    console.log(client.guilds.cache.size)
     const now = Date.now();
     const expirations = readExpirationsFromFile();
 
-    for (let userId in expirations) {
-        if (expirations[userId] <= now) {
-            if (expirations[userId].expiration <= now){
-            const guild = client.guilds.cache.get(guidId); 
-            const member = guild.members.cache.get(userId);
+    for (let key in expirations) {
+        const userData = expirations[key];
+        if (userData.expiration <= now) {
+            try {
+                // Fetch the guild directly from the API
+                const guild = await client.guilds.fetch(guildId);
+                if (!guild) {
+                    console.error(`Failed to find a guild with the ID: ${guildId}`);
+                    continue; // Skip this iteration and proceed with the next key
+                }
+                
+                const member = guild.members.cache.get(userData.userId);
+                if (member) {
+                    await member.roles.remove(roleId);
+                    console.log(`Removed role from user ${userData.userId}.`);
+                } else {
+                    console.warn(`User ${userData.userId} not found in guild ${guildId}.`);
+                }
 
-            if (member) {
-                member.roles.remove(roleId) 
-                    .then(() => {
-                        console.log(`Removed role from user ${userId}.`);
-                    })
-                    .catch(err => {
-                        console.error(`Failed to remove role from user ${userId}: `, err);
-                    });
-            }
+                // Remove this key from the expirations data
+                delete expirations[key];
 
-            // Remove this user from the expirations data
-            delete expirations[userId];
-
+            } catch (error) {
+                console.error(`Failed to process role expiration for user ${userData.userId}. Error:`, error);
             }
         }
     }
@@ -78,9 +84,10 @@ function checkRoleExpirations() {
     writeExpirationsToFile(expirations);
 }
 
-// Start the interval to check role expirations
-setInterval(checkRoleExpirations, 86400000); // Check every 24 hours
+
+
 
 module.exports = {
-    assignRoleWithExpiration
+    assignRoleWithExpiration,
+    checkRoleExpirations
 };

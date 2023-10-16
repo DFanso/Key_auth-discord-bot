@@ -25,10 +25,10 @@ module.exports = {
         const response = await axios.get(apiUrl);
         const data = response.data;
         
-        if (data.success && data.status === "Not Used") {
+        if (data.success && (data.status === "Not Used" || data.status === "Used" )) {
           const secondsInADay = 24 * 60 * 60;
           let daysLeft = Math.round(parseInt(data.duration, 10) / secondsInADay);
-          daysLeft += 3;
+          // daysLeft += 3;
           
             
             // Assign the role using roleManager
@@ -40,9 +40,12 @@ module.exports = {
               await interaction.reply({ content: 'Sorry, that key is invalid or already used.', ephemeral: true });
           }
     } catch (error) {
-      if (error.message === 'This key has already been used by the user.') {
+      if (error.message === 'This key has already been used by you.') {
           await interaction.reply({ content: 'You have already used this key.', ephemeral: true });
-      } else {
+      } 
+      else if (error.message === 'This key has already been used by another user.') {
+        await interaction.reply({ content: 'This key has already been used by another user.', ephemeral: true });
+      }else {
           console.error('Error in claimrole command:', error);
           await interaction.reply({ content: 'An error occurred while processing your request. Please try again later.', ephemeral: true });
       }
