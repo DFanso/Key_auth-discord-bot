@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const {guildId,roleId} = require('../config.json')
+const {guildId,roleId} = require('../config.json');
+const { Console } = require('console');
 const expirationFilePath = path.join(__dirname, 'roleExpirations.json');
 
 function ensureFileExists() {
@@ -48,22 +49,40 @@ async function assignRoleWithExpiration(member, roleId, days, key) {
 }
 
 async function checkRoleExpirations(client) {
-    console.log(client.guilds.cache.size)
+    console.log("Checking Role Expirations...");
     const now = Date.now();
+    const threeDaysInMilliseconds = 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
     const expirations = readExpirationsFromFile();
 
     for (let key in expirations) {
         const userData = expirations[key];
+        const timeLeft = userData.expiration - now;
+
+        // If the expiration date is within the next 3 days and not yet expired
+        if (timeLeft <= threeDaysInMilliseconds && timeLeft > 0) {
+            try {
+                const guild = await client.guilds.fetch(guildId);
+                let member = guild.members.cache.get(userData.userId);
+                if (!member) {
+                    member = await guild.members.fetch(userData.userId);
+                }
+                if (member) {
+                    // Send the warning message to the user
+                    await member.send("Your access will expire in less than 3 days. Please renew if necessary.");
+                }
+            } catch (error) {
+                console.error(`Failed to send expiration warning to user ${userData.userId}. Error:`, error);
+            }
+        }
+
+        // If the role has expired
         if (userData.expiration <= now) {
             try {
-                // Fetch the guild directly from the API
                 const guild = await client.guilds.fetch(guildId);
-                if (!guild) {
-                    console.error(`Failed to find a guild with the ID: ${guildId}`);
-                    continue; // Skip this iteration and proceed with the next key
+                let member = guild.members.cache.get(userData.userId);
+                if (!member) {
+                    member = await guild.members.fetch(userData.userId).catch(err => console.error(err));
                 }
-                
-                const member = guild.members.cache.get(userData.userId);
                 if (member) {
                     await member.roles.remove(roleId);
                     console.log(`Removed role from user ${userData.userId}.`);
@@ -83,6 +102,7 @@ async function checkRoleExpirations(client) {
     // Write updated expirations back to the file
     writeExpirationsToFile(expirations);
 }
+
 
 
 
