@@ -1,10 +1,10 @@
 const { REST, Routes } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
-const { clientId, token} = require('./config.json');
+const { clientId, token} = require('../config.json');
 
 const commands = [];
-const commandFoldersPath = path.join(__dirname, 'commands');
+const commandFoldersPath = path.join(__dirname, '../commands');
 const commandFolders = fs.readdirSync(commandFoldersPath);
 
 for (const folder of commandFolders) {

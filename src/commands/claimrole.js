@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const axios = require('axios');
-const roleManager = require('../roleManager');
+const roleManager = require('../services/roleManager');
 
 const {apiKey,roleId} = require('../config.json')
 
