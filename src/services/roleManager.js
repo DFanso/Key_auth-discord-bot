@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { Client, GatewayIntentBits } = require('discord.js');
-const {guidId,roleId} = require('./config.json')
+const {guidId,roleId} = require('../config.json')
 const expirationFilePath = path.join(__dirname, 'roleExpirations.json');
 
 
@@ -71,7 +71,6 @@ function checkRoleExpirations() {
             delete expirations[userId];
 
             }
-            
         }
     }
 

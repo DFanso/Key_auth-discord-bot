@@ -4,7 +4,7 @@
   "description": "key valiadating and auto role adding and removing bot",
   "main": "src/index.js",
   "scripts": {
-    "deploy": "node src/deploy.js",
+    "deploy": "node src/utils/deploy.js",
     "start": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
