@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const {guildId,roleId} = require('../config.json');
-const { Console } = require('console');
 const expirationFilePath = path.join(__dirname, 'roleExpirations.json');
 
 function ensureFileExists() {
@@ -28,6 +27,7 @@ async function assignRoleWithExpiration(member, roleId, days, key) {
 
     // Calculate the expiration timestamp
     const expirationTimestamp = Date.now() + (days * 24 * 60 * 60 * 1000);
+
 
     // Save the expiration and the key in the JSON file
     const expirations = readExpirationsFromFile();
@@ -59,21 +59,24 @@ async function checkRoleExpirations(client) {
         const timeLeft = userData.expiration - now;
 
         // If the expiration date is within the next 3 days and not yet expired
-        if (timeLeft <= threeDaysInMilliseconds && timeLeft > 0) {
-            try {
-                const guild = await client.guilds.fetch(guildId);
-                let member = guild.members.cache.get(userData.userId);
-                if (!member) {
-                    member = await guild.members.fetch(userData.userId);
-                }
-                if (member) {
-                    // Send the warning message to the user
-                    await member.send("Your access will expire in less than 3 days. Please renew if necessary.");
-                }
-            } catch (error) {
-                console.error(`Failed to send expiration warning to user ${userData.userId}. Error:`, error);
+        if (timeLeft <= threeDaysInMilliseconds && timeLeft > 0 && !userData.warned) {
+        try {
+            const guild = await client.guilds.fetch(guildId);
+            let member = guild.members.cache.get(userData.userId);
+            if (!member) {
+                member = await guild.members.fetch(userData.userId);
             }
+            if (member) {
+                // Send the warning message to the user
+                await member.send("Your access will expire in less than 3 days. Please renew if necessary.");
+                
+                // Mark the user as warned in the expirations data
+                userData.warned = true;
+            }
+        } catch (error) {
+            console.error(`Failed to send expiration warning to user ${userData.userId}. Error:`, error);
         }
+    }
 
         // If the role has expired
         if (userData.expiration <= now) {
