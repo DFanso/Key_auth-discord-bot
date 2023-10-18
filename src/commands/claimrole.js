@@ -25,20 +25,33 @@ module.exports = {
         const response = await axios.get(apiUrl);
         const data = response.data;
         
-        if (data.success && (data.status === "Not Used" || data.status === "Used" )) {
+        if (data.success) {
           const secondsInADay = 24 * 60 * 60;
-          let daysLeft = Math.round(parseInt(data.duration, 10) / secondsInADay);
-          daysLeft += 3;
-          
-            
-            // Assign the role using roleManager
-            const member = interaction.guild.members.cache.get(interaction.user.id);
-            await roleManager.assignRoleWithExpiration(member, roleId, daysLeft, licenseKey);
-            
-            await interaction.reply({ content: `Role assigned for ${daysLeft} days.`, ephemeral: true });
-          } else {
-              await interaction.reply({ content: 'Sorry, that key is invalid or already used.', ephemeral: true });
+          let daysLeft = 0;
+      
+          if (data.status === "Not Used") {
+              daysLeft = Math.round(parseInt(data.duration, 10) / secondsInADay);
+          } else if (data.status === "Used") {
+              const currentTime = Math.floor(Date.now() / 1000); // current time in seconds
+              const expiryTime = parseInt(data.usedon, 10) + parseInt(data.duration, 10);
+              daysLeft = Math.round((expiryTime - currentTime) / secondsInADay);
           }
+      
+          // Add the grace period
+          daysLeft += 3;
+      
+          if (daysLeft > 0) {
+              const member = interaction.guild.members.cache.get(interaction.user.id);
+              await roleManager.assignRoleWithExpiration(member, roleId, daysLeft, licenseKey);
+              await interaction.reply({ content: `Role assigned for ${daysLeft} days.`, ephemeral: true });
+          } else {
+              await interaction.reply({ content: 'Sorry, that key has expired.', ephemeral: true });
+          }
+      
+      } else {
+          await interaction.reply({ content: 'Sorry, that key is invalid or already used.', ephemeral: true });
+      }
+      
     } catch (error) {
       if (error.message === 'This key has already been used by you.') {
           await interaction.reply({ content: 'You have already used this key.', ephemeral: true });
